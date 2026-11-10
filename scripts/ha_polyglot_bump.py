@@ -4,6 +4,36 @@
 HomeAssistant & Polyglot Overlay Ecosystem Bump Engine
 Orchestrates node-ebuilder, cargo-ebuild, and pkgdev to automate multi-spec packages.
 """
+import os
+import re
+
+OVERLAY_PATH = "/var/db/repos/homeassistant"
+TARGET_KEYWORDS = 'KEYWORDS="amd64 arm arm64 x86 riscv64"'
+
+# Compile a robust regular expression matching any keyword configuration array
+keyword_regex = re.compile(r'KEYWORDS="[^"]*"')
+
+print("🚀 Enforcing cluster architecture keywords across overlay tree...")
+
+for root, _, files in os.walk(OVERLAY_PATH):
+    for file in files:
+        if file.endswith(".ebuild"):
+            ebuild_path = os.path.join(root, file)
+            
+            with open(ebuild_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Check if keywords match our exact cluster array profile
+            if TARGET_KEYWORDS not in content:
+                print(f"📐 Balancing platform definitions inside: {file}")
+                # Dynamically substitute whatever string was present
+                content = keyword_regex.sub(TARGET_KEYWORDS, content)
+                
+                with open(ebuild_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                # Automatically trigger pkgdev manifest to sign off on the layout change
+                subprocess.run(["pkgdev", "manifest"], cwd=root, check=True)
 
 import os
 import sys
